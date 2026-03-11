@@ -18,7 +18,7 @@ import {
 
 // PDFJS for generating thumbnail previews
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
-GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${GlobalWorkerOptions.version}/pdf.worker.min.js`;
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.min.mjs`;
 const STEPS = [
   { id: 'signing',    label: 'Getting credentials' },
   { id: 'uploading',  label: 'Uploading to cloud'  },
