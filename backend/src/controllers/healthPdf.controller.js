@@ -92,6 +92,7 @@ const analyzePdf = async (req, res) => {
         timeout: 30000,
       });
       pdfBuffer = Buffer.from(pdfRes.data);
+      console.log("PDF size (bytes):", pdfBuffer.length); // ← add this
     } catch {
       await HealthReport.findByIdAndUpdate(report._id, { status: "failed" });
       return res.status(500).json({ error: "Failed to download PDF from storage" });
