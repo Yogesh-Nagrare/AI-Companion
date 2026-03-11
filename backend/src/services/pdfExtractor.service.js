@@ -1,45 +1,48 @@
 // backend/services/pdfExtractor.service.js
 
-// ✅ FIX: pdf-parse uses CommonJS module.exports (not a named export)
-// Wrong:  const pdfParse = require("pdf-parse");          → gives the module object
-// Wrong:  const { default: pdfParse } = require(...)      → undefined
-// Correct: require the module then access .default, OR just call it directly
-const pdfParse = require("pdf-parse");
-
-// Some bundler/Node version combos wrap it — this handles both cases:
-const parse = typeof pdfParse === "function" ? pdfParse : pdfParse.default;
-
-/**
- * extractTextFromBuffer
- * @param {Buffer} pdfBuffer - Raw PDF bytes (from axios arraybuffer response)
- * @returns {Promise<string>} Extracted, cleaned plain text
- */
 const extractTextFromBuffer = async (pdfBuffer) => {
   if (!Buffer.isBuffer(pdfBuffer)) {
     throw new Error("Invalid input: expected a Buffer");
   }
 
+  console.log("Extracting PDF, buffer size:", pdfBuffer.length);
+
+  // Dynamically import inside the function
+  let pdfParse;
+  try {
+    pdfParse = require("pdf-parse");
+    pdfParse = typeof pdfParse === "function" ? pdfParse : pdfParse.default;
+  } catch (err) {
+    console.error("Failed to load pdf-parse:", err);
+    throw new Error("PDF parser not found. Check your pdf-parse installation.");
+  }
+
+  if (typeof pdfParse !== "function") {
+    console.error("pdf-parse is not a function:", pdfParse);
+    throw new Error("PDF parser not loaded correctly.");
+  }
+
   let data;
   try {
-    data = await parse(pdfBuffer);
+    data = await pdfParse(pdfBuffer);
   } catch (err) {
+    console.error("PDF parsing failed:", err);
     throw new Error(`pdf-parse failed to read the file: ${err.message}`);
   }
 
   const rawText = data?.text;
-
   if (!rawText || rawText.trim().length < 50) {
     throw new Error(
-      "PDF appears to be empty or image-only (scanned). " +
-      "Text extraction requires a text-based PDF, not a scanned image."
+      "PDF appears empty or image-only (scanned). Text-based PDF required."
     );
   }
 
-  // Clean up whitespace while keeping structure readable
+  console.log("Raw text length:", rawText.length);
+
   const cleaned = rawText
-    .replace(/\r\n/g, "\n")     // normalize line endings
-    .replace(/[ \t]+/g, " ")    // collapse tabs/spaces
-    .replace(/\n{3,}/g, "\n\n") // max 2 consecutive blank lines
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 
   return cleaned;
