@@ -15,8 +15,12 @@ import {
   setUploadProgress,
 } from '../redux/healthSlice';
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/legacy/build/pdf";
+<<<<<<< HEAD
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
+=======
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.min.mjs`;
+>>>>>>> 2521827850d11c527a3dac8cfef97e2f5624a469
 const STEPS = [
   { id: 'signing',    label: 'Getting credentials'  },
   { id: 'uploading',  label: 'Uploading to cloud'    },

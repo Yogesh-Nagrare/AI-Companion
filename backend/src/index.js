@@ -1,5 +1,7 @@
-require('dotenv').config();
+require('dotenv').config({path: "C:\\Users\\arpit\\Downloads\\AI-Companion\\backend\\.env"});
 const express = require('express');
+console.log("DB:", process.env.DB_CONNECT);
+console.log("CLIENT_URL:", process.env.CLIENT_URL);
 const app = express();
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -156,3 +158,5 @@ app.listen(PORT, () => {
 initializeConnection();
 
 module.exports = app;
+
+console.log(process.env.DB_CONNECT);
