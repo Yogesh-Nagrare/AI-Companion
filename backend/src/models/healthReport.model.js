@@ -1,8 +1,6 @@
-// backend/models/healthReport.model.js
-
 const mongoose = require("mongoose");
 
-const healthReportSchema = new mongoose.Schema(
+const healthMLReportSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -10,48 +8,40 @@ const healthReportSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    reportName: { type: String, default: "Health Report", trim: true },
-
-    // Cloudinary fields
-    cloudinaryPublicId: { type: String, required: true, unique: true },
-    secureUrl: { type: String, required: true },
-    fileSize: { type: Number, default: null }, // bytes
-
-    // Quick-access top-level fields (also stored inside aiAnalysis)
-    severityLevel: {
+    inputData: {
+      hba1c: Number,
+      glucose: Number,
+      bmi: Number,
+      age: Number,
+      symptoms: [String],
+      manual_text: String,
+    },
+    // From FastAPI ML pipeline response
+    riskLevel: {
       type: String,
       enum: ["Low", "Moderate", "High", "Critical", null],
       default: null,
     },
-
-    // Full Gemini analysis stored as a flexible object
-    aiAnalysis: {
-      summary: String,
-      keyFindings: [
-        {
-          marker: String,
-          value: String,
-          normalRange: String,
-          status: { type: String, enum: ["Normal", "Borderline", "High", "Low", "Critical"] },
-          interpretation: String,
-          _id: false,
-        },
-      ],
-      riskFactors: [String],
-      recommendations: [String],
-      severityLevel: String,
-      warningSigns: [String],
-      simpleExplanation: String,
-      disclaimer: String,
+    alert: {
+      type: Boolean,
+      default: false,
     },
-
-    status: {
+    report: {
+      type: String, // patient-friendly text from Alert Agent
+    },
+    finalAssessment: {
+      type: mongoose.Schema.Types.Mixed, // { score, ml_probability, abnormal_count, symptom_score }
+    },
+    workflowStatus: {
       type: String,
-      enum: ["uploaded", "analyzing", "done", "failed"],
-      default: "uploaded",
+      default: "completed",
+    },
+    fastapiRecordId: {
+      type: Number, // FastAPI's own DB record ID (for cross-reference)
+      default: null,
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("HealthReport", healthReportSchema);
+module.exports = mongoose.model("HealthMLReport", healthMLReportSchema);

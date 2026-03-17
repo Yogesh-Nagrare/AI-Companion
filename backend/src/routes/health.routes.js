@@ -1,8 +1,6 @@
-// backend/routes/health.routes.js
-
 const express = require("express");
 const router = express.Router();
-const userAuth = require("../middleware/userMiddleware"); // your existing middleware
+const userAuth = require("../middleware/userMiddleware");
 const {
   generatePdfUploadSignature,
   analyzePdf,
@@ -11,13 +9,27 @@ const {
   deleteReport,
 } = require("../controllers/healthPdf.controller");
 
-// All health routes require authentication
+// 🆕 Import ML controller
+const {
+  analyzeWithML,
+  getMLReports,
+  getMLReportById,
+  deleteMLReport,
+} = require("../controllers/healthML.controller");
+
 router.use(userAuth);
 
-router.get("/signature",          generatePdfUploadSignature);  // Step 1
-router.post("/analyze",           analyzePdf);                  // Step 2
-router.get("/reports",            getUserReports);
-router.get("/reports/:reportId",  getReportById);
-router.delete("/reports/:reportId", deleteReport);
+// ── Existing PDF/Gemini routes (UNCHANGED) ──
+router.get("/signature",              generatePdfUploadSignature);
+router.post("/analyze",               analyzePdf);
+router.get("/reports",                getUserReports);
+router.get("/reports/:reportId",      getReportById);
+router.delete("/reports/:reportId",   deleteReport);
+
+// ── 🆕 New ML routes ──
+router.post("/ml/analyze",            analyzeWithML);
+router.get("/ml/reports",             getMLReports);
+router.get("/ml/reports/:reportId",   getMLReportById);
+router.delete("/ml/reports/:reportId", deleteMLReport);
 
 module.exports = router;

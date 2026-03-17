@@ -1,19 +1,9 @@
-// backend/services/pdfExtractor.service.js
+// backend/src/services/pdfExtractor.service.js
 
-// ✅ FIX: pdf-parse uses CommonJS module.exports (not a named export)
-// Wrong:  const pdfParse = require("pdf-parse");          → gives the module object
-// Wrong:  const { default: pdfParse } = require(...)      → undefined
-// Correct: require the module then access .default, OR just call it directly
-const pdfParse = require("pdf-parse");
+const { createRequire } = require("module");
+const require2 = createRequire(require.resolve("pdf-parse/package.json"));
+const pdfParse = require2("./lib/pdf-parse.js");
 
-// Some bundler/Node version combos wrap it — this handles both cases:
-const parse = typeof pdfParse === "function" ? pdfParse : pdfParse.default;
-
-/**
- * extractTextFromBuffer
- * @param {Buffer} pdfBuffer - Raw PDF bytes (from axios arraybuffer response)
- * @returns {Promise<string>} Extracted, cleaned plain text
- */
 const extractTextFromBuffer = async (pdfBuffer) => {
   if (!Buffer.isBuffer(pdfBuffer)) {
     throw new Error("Invalid input: expected a Buffer");
@@ -21,7 +11,7 @@ const extractTextFromBuffer = async (pdfBuffer) => {
 
   let data;
   try {
-    data = await parse(pdfBuffer);
+    data = await pdfParse(pdfBuffer);
   } catch (err) {
     throw new Error(`pdf-parse failed to read the file: ${err.message}`);
   }
@@ -31,15 +21,14 @@ const extractTextFromBuffer = async (pdfBuffer) => {
   if (!rawText || rawText.trim().length < 50) {
     throw new Error(
       "PDF appears to be empty or image-only (scanned). " +
-      "Text extraction requires a text-based PDF, not a scanned image."
+      "Text extraction requires a text-based PDF."
     );
   }
 
-  // Clean up whitespace while keeping structure readable
   const cleaned = rawText
-    .replace(/\r\n/g, "\n")     // normalize line endings
-    .replace(/[ \t]+/g, " ")    // collapse tabs/spaces
-    .replace(/\n{3,}/g, "\n\n") // max 2 consecutive blank lines
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 
   return cleaned;

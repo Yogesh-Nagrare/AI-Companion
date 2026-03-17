@@ -1,675 +1,481 @@
-// // src/pages/Dashboard.jsx
-// // Your existing Dashboard with:
-// //   1. "Upload PDF" sidebar link that navigates to /upload-pdf
-// //   2. Recent reports list in a new card below the existing layout
-// // All original code preserved — only additive changes
-
-// import { useState, useEffect } from 'react';
-// import { motion, AnimatePresence } from 'framer-motion';
-// import {
-//   HeartPulse, FileText, Video, Send,
-//   Activity, ShieldCheck, Zap, LogOut,
-//   Upload, CheckCircle2, Loader2, Sparkles,
-//   ChevronRight, Trash2, Plus,
-// } from 'lucide-react';
-// import { useDispatch, useSelector } from 'react-redux';
-// import { logoutUser } from '../authSlice';
-// import { fetchReports, deleteReport } from '../redux/healthSlice';
-// import { useNavigate, NavLink } from 'react-router';
-
-// const SEVERITY_COLORS = {
-//   Low:      "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-//   Moderate: "text-amber-400   bg-amber-500/10   border-amber-500/20",
-//   High:     "text-orange-400  bg-orange-500/10  border-orange-500/20",
-//   Critical: "text-red-400     bg-red-500/10     border-red-500/20",
-// };
-
-// function Dashboard() {
-//   // ── Existing state (unchanged) ──
-//   const [file, setFile] = useState(null);
-//   const [fileType, setFileType] = useState(null);
-//   const [isAnalyzing, setIsAnalyzing] = useState(false);
-//   const [response, setResponse] = useState("");
-//   const [logoutLoading, setLogoutLoading] = useState(false);
-
-//   const dispatch = useDispatch();
-//   const navigate = useNavigate();
-
-//   // ── NEW: pull reports from Redux ──
-//   const { reports, reportsLoading } = useSelector((state) => state.health);
-//   const { user } = useSelector((state) => state.auth);
-
-//   // ── Load reports on mount ──
-//   useEffect(() => {
-//     dispatch(fetchReports());
-//   }, [dispatch]);
-
-//   // ── Existing handlers (unchanged) ──
-//   const handleLogout = async () => {
-//     setLogoutLoading(true);
-//     try {
-//       await dispatch(logoutUser()).unwrap();
-//     } catch (err) {
-//       console.warn("Logout API error:", err);
-//     } finally {
-//       setLogoutLoading(false);
-//       navigate('/login');
-//     }
-//   };
-
-//   const simulateAnalysis = (e) => {
-//     e.preventDefault();
-//     if (!file) return;
-//     setIsAnalyzing(true);
-//     setResponse("");
-//     setTimeout(() => {
-//       setIsAnalyzing(false);
-//       setResponse(
-//         `Analysis Complete: The provided ${fileType.toUpperCase()} indicates stable metabolic markers. ` +
-//         `I've noted a slight trend in recovery heart rate efficiency. Suggesting a 5% increase in zone 2 cardio duration. ` +
-//         `Would you like me to cross-reference this with your last month's lab results?`
-//       );
-//     }, 3000);
-//   };
-
-//   const onFileChange = (e, type) => {
-//     const selectedFile = e.target.files[0];
-//     if (selectedFile) {
-//       setFile(selectedFile);
-//       setFileType(type);
-//       setResponse("");
-//     }
-//   };
-
-//   const handleDeleteReport = async (e, reportId) => {
-//     e.stopPropagation();
-//     if (!confirm("Delete this report permanently?")) return;
-//     dispatch(deleteReport(reportId));
-//   };
-
-//   const initials = user?.firstName?.slice(0, 2).toUpperCase() || "AI";
-
-//   return (
-//     <div className="min-h-screen bg-[#05080a] text-slate-200 font-sans flex overflow-hidden">
-
-//       {/* ── Sidebar (added Upload PDF link) ── */}
-//       <aside className="w-20 md:w-64 bg-[#0a0f12] border-r border-white/5 flex flex-col items-center md:items-start py-8 px-4 z-20">
-//         <div className="flex items-center gap-3 mb-12 md:px-4">
-//           <div className="bg-gradient-to-br from-teal-400 to-emerald-600 p-2 rounded-xl text-black shadow-[0_0_15px_rgba(45,212,191,0.3)]">
-//             <HeartPulse size={20} strokeWidth={2.5} />
-//           </div>
-//           <span className="hidden md:block text-xl font-bold text-white tracking-tight">VITA<span className="text-teal-400">AI</span></span>
-//         </div>
-
-//         <nav className="flex-1 w-full space-y-2">
-//           {/* Existing links */}
-//           <SidebarLink icon={<Activity size={20} />} label="Overview" active />
-//           <SidebarLink icon={<FileText size={20} />} label="Health Records" />
-//           <SidebarLink icon={<Zap size={20} />} label="AI Diagnostics" />
-//           {/* ── NEW: Upload PDF link ── */}
-//           <NavLink to="/upload-pdf">
-//             <SidebarLink icon={<Upload size={20} />} label="Upload PDF" />
-//           </NavLink>
-//         </nav>
-
-//         <button
-//           onClick={handleLogout}
-//           disabled={logoutLoading}
-//           className="mt-auto flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-red-400 transition-colors w-full group disabled:opacity-50 disabled:cursor-not-allowed"
-//         >
-//           {logoutLoading ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
-//           <span className="hidden md:block font-bold text-[10px] uppercase tracking-widest">
-//             {logoutLoading ? 'Signing Out...' : 'Terminate Session'}
-//           </span>
-//         </button>
-//       </aside>
-
-//       {/* ── Main Content ── */}
-//       <main className="flex-1 relative overflow-y-auto">
-//         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-//         {/* Header (updated avatar to use real user initials) */}
-//         <header className="px-8 py-8 flex justify-between items-center">
-//           <div>
-//             <h1 className="text-2xl font-semibold text-white tracking-tight">Diagnostic Hub</h1>
-//             <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-medium">
-//               System Status: <span className="text-emerald-500">Optimal</span>
-//             </p>
-//           </div>
-//           <div className="flex items-center gap-4">
-//             {/* ── NEW: Quick upload button ── */}
-//             <NavLink to="/upload-pdf"
-//               className="hidden md:flex items-center gap-2 bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 text-teal-400 font-bold text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all">
-//               <Plus size={14} /> New Report
-//             </NavLink>
-//             <div className="hidden md:block text-right">
-//               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Current Bio-Sync</p>
-//               <p className="text-sm text-teal-400 font-mono">98.2 BPM</p>
-//             </div>
-//             <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-teal-400 font-bold text-sm">
-//               {initials}
-//             </div>
-//           </div>
-//         </header>
-
-//         <section className="px-8 pb-12 space-y-8">
-
-//           {/* ── EXISTING: Original 12-col grid layout (100% unchanged) ── */}
-//           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-//             {/* Left Column: Uploaders */}
-//             <div className="lg:col-span-5 space-y-6">
-//               <div className="bg-[#0a0f12]/80 border border-white/5 p-6 rounded-[32px] backdrop-blur-xl">
-//                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-//                   <Upload size={14} className="text-teal-500" /> Data Ingestion
-//                 </h3>
-//                 <div className="grid grid-cols-1 gap-4">
-//                   {/* PDF Upload */}
-//                   <label className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center gap-3
-//                     ${fileType === 'pdf' ? 'border-teal-500/50 bg-teal-500/5' : 'border-white/5 hover:border-white/10 bg-black/20'}`}>
-//                     <input type="file" accept=".pdf" className="hidden" onChange={(e) => onFileChange(e, 'pdf')} />
-//                     <div className="p-3 bg-slate-900 rounded-xl group-hover:scale-110 transition-transform">
-//                       <FileText size={24} className={fileType === 'pdf' ? 'text-teal-400' : 'text-slate-500'} />
-//                     </div>
-//                     <div className="text-center">
-//                       <p className="text-xs font-bold text-white uppercase tracking-wider">Clinical PDF</p>
-//                       <p className="text-[10px] text-slate-500 mt-1">Lab reports, Scans</p>
-//                     </div>
-//                   </label>
-//                   {/* Video Upload */}
-//                   <label className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center gap-3
-//                     ${fileType === 'video' ? 'border-teal-500/50 bg-teal-500/5' : 'border-white/5 hover:border-white/10 bg-black/20'}`}>
-//                     <input type="file" accept="video/*" className="hidden" onChange={(e) => onFileChange(e, 'video')} />
-//                     <div className="p-3 bg-slate-900 rounded-xl group-hover:scale-110 transition-transform">
-//                       <Video size={24} className={fileType === 'video' ? 'text-teal-400' : 'text-slate-500'} />
-//                     </div>
-//                     <div className="text-center">
-//                       <p className="text-xs font-bold text-white uppercase tracking-wider">Movement Video</p>
-//                       <p className="text-[10px] text-slate-500 mt-1">Gait analysis, Exercise</p>
-//                     </div>
-//                   </label>
-//                 </div>
-
-//                 {file && (
-//                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-//                     className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3">
-//                     <CheckCircle2 size={18} className="text-emerald-500" />
-//                     <span className="text-[10px] font-bold text-emerald-200 uppercase truncate flex-1">{file.name}</span>
-//                   </motion.div>
-//                 )}
-
-//                 <button
-//                   onClick={simulateAnalysis}
-//                   disabled={!file || isAnalyzing}
-//                   className="w-full mt-6 bg-teal-500 hover:bg-teal-400 disabled:opacity-30 text-black font-bold text-[10px] uppercase tracking-[0.2em] py-4 rounded-xl transition-all shadow-lg shadow-teal-500/20 flex items-center justify-center gap-2"
-//                 >
-//                   {isAnalyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-//                   {isAnalyzing ? 'Processing Bio-Data' : 'Begin AI Analysis'}
-//                 </button>
-
-//                 {/* ── NEW: Deep PDF Analysis CTA (below existing button) ── */}
-//                 <NavLink to="/upload-pdf"
-//                   className="w-full mt-3 flex items-center justify-center gap-2 border border-teal-500/20 text-teal-400 font-bold text-[10px] uppercase tracking-[0.2em] py-3 rounded-xl transition-all hover:bg-teal-500/5">
-//                   <FileText size={14} /> Full PDF Analysis →
-//                 </NavLink>
-//               </div>
-//             </div>
-
-//             {/* Right Column: AI Output (100% unchanged) */}
-//             <div className="lg:col-span-7 flex flex-col h-[600px]">
-//               <div className="bg-[#0a0f12]/80 border border-white/5 rounded-[32px] backdrop-blur-xl flex flex-col flex-1 overflow-hidden shadow-2xl">
-//                 <div className="p-6 border-b border-white/5 flex justify-between items-center bg-white/5">
-//                   <div className="flex items-center gap-3">
-//                     <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-//                     <h3 className="text-xs font-bold text-white uppercase tracking-widest">Neural Insights Feed</h3>
-//                   </div>
-//                   <ShieldCheck size={16} className="text-slate-500" />
-//                 </div>
-
-//                 <div className="flex-1 p-8 overflow-y-auto space-y-6">
-//                   <AnimatePresence mode="wait">
-//                     {isAnalyzing && (
-//                       <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-//                         className="flex flex-col items-center justify-center h-full text-center space-y-4">
-//                         <div className="relative">
-//                           <div className="absolute inset-0 bg-teal-500/20 rounded-full blur-xl animate-pulse" />
-//                           <Loader2 size={40} className="text-teal-500 animate-spin relative z-10" />
-//                         </div>
-//                         <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">Decoding Medical Patterns...</p>
-//                       </motion.div>
-//                     )}
-//                     {!isAnalyzing && !response && (
-//                       <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-//                         className="flex flex-col items-center justify-center h-full text-center opacity-30">
-//                         <Zap size={48} className="mb-4 text-slate-500" />
-//                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Waiting for Ingestion</p>
-//                       </motion.div>
-//                     )}
-//                     {!isAnalyzing && response && (
-//                       <motion.div key="response" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-//                         className="bg-slate-900/50 border border-teal-500/20 p-6 rounded-2xl relative">
-//                         <Sparkles size={16} className="absolute -top-2 -left-2 text-teal-400" />
-//                         <p className="text-sm leading-relaxed text-slate-200 font-medium">{response}</p>
-//                         <div className="mt-6 flex gap-2">
-//                           <button className="text-[10px] font-bold uppercase tracking-widest bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-colors border border-white/5">
-//                             Save to Records
-//                           </button>
-//                           <NavLink to="/upload-pdf" className="text-[10px] font-bold uppercase tracking-widest bg-teal-500 text-black px-4 py-2 rounded-lg transition-colors">
-//                             Full PDF Analysis
-//                           </NavLink>
-//                         </div>
-//                       </motion.div>
-//                     )}
-//                   </AnimatePresence>
-//                 </div>
-
-//                 <div className="p-6 bg-black/40 border-t border-white/5">
-//                   <div className="relative">
-//                     <input type="text" placeholder="Ask follow-up question..."
-//                       className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-xs outline-none focus:border-teal-500/50 transition-all placeholder:text-slate-600" />
-//                     <button className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-500 hover:text-teal-400 transition-colors">
-//                       <Send size={16} />
-//                     </button>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* ── NEW: Health Reports List (appears below existing grid) ── */}
-//           <div className="bg-[#0a0f12]/80 border border-white/5 rounded-[32px] backdrop-blur-xl overflow-hidden">
-//             <div className="p-6 border-b border-white/5 flex items-center justify-between">
-//               <h3 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-//                 <FileText size={14} className="text-teal-500" /> Health Reports
-//               </h3>
-//               <NavLink to="/upload-pdf"
-//                 className="flex items-center gap-1.5 text-teal-400 hover:text-teal-300 text-[10px] font-bold uppercase tracking-widest transition-colors">
-//                 <Plus size={12} /> Upload New
-//               </NavLink>
-//             </div>
-
-//             {reportsLoading ? (
-//               <div className="flex items-center justify-center py-10">
-//                 <Loader2 size={22} className="text-teal-500 animate-spin" />
-//               </div>
-//             ) : reports.length === 0 ? (
-//               <div className="flex flex-col items-center justify-center py-12 text-center px-6">
-//                 <div className="p-4 bg-slate-900 rounded-2xl mb-3">
-//                   <FileText size={28} className="text-slate-600" />
-//                 </div>
-//                 <p className="text-slate-500 text-sm font-medium mb-1">No reports yet</p>
-//                 <p className="text-slate-600 text-xs mb-5">Upload a health PDF to get AI-powered insights</p>
-//                 <NavLink to="/upload-pdf"
-//                   className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-black font-bold text-[10px] uppercase tracking-widest px-5 py-3 rounded-xl transition-all">
-//                   <Upload size={12} /> Upload PDF
-//                 </NavLink>
-//               </div>
-//             ) : (
-//               <div className="divide-y divide-white/5">
-//                 {reports.map((report, i) => (
-//                   <motion.div key={report._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}>
-//                     <NavLink to={`/analysis/${report._id}`}
-//                       className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors group">
-//                       <div className="p-2.5 bg-slate-900 rounded-xl border border-white/5 flex-shrink-0">
-//                         <FileText size={16} className="text-teal-400" />
-//                       </div>
-//                       <div className="flex-1 min-w-0">
-//                         <p className="text-sm font-semibold text-white truncate">{report.reportName}</p>
-//                         <p className="text-[10px] text-slate-500 mt-0.5">
-//                           {new Date(report.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
-//                         </p>
-//                       </div>
-//                       {report.severityLevel && (
-//                         <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border flex-shrink-0 ${SEVERITY_COLORS[report.severityLevel]}`}>
-//                           {report.severityLevel}
-//                         </span>
-//                       )}
-//                       <div className="flex items-center gap-1">
-//                         <button onClick={(e) => handleDeleteReport(e, report._id)}
-//                           className="p-1.5 text-slate-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 rounded-lg hover:bg-red-500/10">
-//                           <Trash2 size={13} />
-//                         </button>
-//                         <ChevronRight size={15} className="text-slate-600 group-hover:text-teal-400 transition-colors" />
-//                       </div>
-//                     </NavLink>
-//                   </motion.div>
-//                 ))}
-//               </div>
-//             )}
-//           </div>
-
-//         </section>
-//       </main>
-//     </div>
-//   );
-// }
-
-// function SidebarLink({ icon, label, active = false }) {
-//   return (
-//     <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-300 group
-//       ${active ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'text-slate-500 hover:bg-white/5 hover:text-slate-200'}`}>
-//       {icon}
-//       <span className="hidden md:block text-[10px] font-bold uppercase tracking-widest">{label}</span>
-//     </div>
-//   );
-// }
-
-// export default Dashboard;
-
-
 // src/pages/Dashboard.jsx
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  HeartPulse, FileText, Video, Send,
-  Activity, ShieldCheck, Zap, LogOut,
-  Upload, CheckCircle2, Loader2, Sparkles,
-  ChevronRight, Trash2, Plus,
+  HeartPulse, FileText, Upload, Activity,
+  ShieldCheck, LogOut, Plus, Loader2,
+  ChevronRight, Trash2, AlertCircle, Sparkles,
 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../authSlice';
-import { fetchReports, deleteReport } from '../redux/healthSlice';
+import {
+  fetchReports,
+  deleteReport,
+  fetchMLReports,
+  deleteMLReport,
+} from '../redux/healthSlice';
 import { useNavigate, NavLink } from 'react-router';
 
-const SEVERITY_COLORS = {
-  Low:      "text-emerald-600 bg-emerald-50 border-emerald-100",
-  Moderate: "text-amber-600   bg-amber-50   border-amber-100",
-  High:     "text-orange-600  bg-orange-50  border-orange-100",
-  Critical: "text-red-600     bg-red-50     border-red-100",
+// ── Risk color maps ──────────────────────────────────────────
+const SEVERITY = {
+  Low:      { badge: 'bg-emerald-50 text-emerald-700 border-emerald-100',  ring: '#10b981' },
+  Moderate: { badge: 'bg-amber-50   text-amber-700   border-amber-100',    ring: '#f59e0b' },
+  High:     { badge: 'bg-orange-50  text-orange-700  border-orange-100',   ring: '#f97316' },
+  Critical: { badge: 'bg-red-50     text-red-700     border-red-100',      ring: '#ef4444' },
 };
 
-function Dashboard() {
-  const [file, setFile] = useState(null);
-  const [fileType, setFileType] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [response, setResponse] = useState("");
-  const [logoutLoading, setLogoutLoading] = useState(false);
+// ── Pipeline steps definition ────────────────────────────────
+const PIPELINE_STEPS = [
+  { id: 'extract_pdf',    label: 'Extract PDF',     desc: 'Lab values parsed from report'          },
+  { id: 'analyze_report', label: 'Analyze report',  desc: 'Abnormal parameters detected'           },
+  { id: 'predict_risk',   label: 'Predict risk',    desc: 'ML model diabetes probability'          },
+  { id: 'check_symptoms', label: 'Check symptoms',  desc: 'Symptom pattern matching'               },
+  { id: 'merge_results',  label: 'Merge results',   desc: 'ML×0.6 + labs×0.3 + symptoms×0.1'      },
+  { id: 'generate_alert', label: 'Generate alert',  desc: 'Patient-facing report created'          },
+  { id: 'finalize',       label: 'Finalize',        desc: 'Workflow completed'                      },
+];
 
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
+export default function Dashboard() {
+  const dispatch  = useDispatch();
+  const navigate  = useNavigate();
 
-  const { reports, reportsLoading } = useSelector((state) => state.health);
-  const { user } = useSelector((state) => state.auth);
+  // ── Redux state ──────────────────────────────────────────
+  const { user }                                      = useSelector((s) => s.auth);
+  const { reports, reportsLoading }                   = useSelector((s) => s.health);
+  const { mlReports, mlReportsLoading, mlAnalysisResult } = useSelector((s) => s.health);
 
   useEffect(() => {
     dispatch(fetchReports());
+    dispatch(fetchMLReports());
   }, [dispatch]);
 
   const handleLogout = async () => {
-    setLogoutLoading(true);
-    try {
-      await dispatch(logoutUser()).unwrap();
-    } catch (err) {
-      console.warn("Logout API error:", err);
-    } finally {
-      setLogoutLoading(false);
-      navigate('/login');
-    }
+    try { await dispatch(logoutUser()).unwrap(); } catch (_) {}
+    navigate('/login');
   };
 
-  const simulateAnalysis = (e) => {
-    e.preventDefault();
-    if (!file) return;
-    setIsAnalyzing(true);
-    setResponse("");
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      setResponse(
-        `Analysis Complete: The provided ${fileType.toUpperCase()} indicates stable metabolic markers. ` +
-        `I've noted a slight trend in recovery heart rate efficiency. Suggesting a 5% increase in zone 2 cardio duration. ` +
-        `Would you like me to cross-reference this with your last month's lab results?`
-      );
-    }, 3000);
+  const handleDeletePdf = (e, id) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!confirm('Delete this report?')) return;
+    dispatch(deleteReport(id));
   };
 
-  const onFileChange = (e, type) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setFileType(type);
-      setResponse("");
-    }
+  const handleDeleteML = (e, id) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!confirm('Delete this ML result?')) return;
+    dispatch(deleteMLReport(id));
   };
 
-  const handleDeleteReport = async (e, reportId) => {
-    e.stopPropagation();
-    if (!confirm("Delete this report permanently?")) return;
-    dispatch(deleteReport(reportId));
-  };
+  // ── Latest ML result for pipeline display ───────────────
+  const latest     = mlReports[0] || null;
+  const latestScore = latest?.finalAssessment?.score || mlAnalysisResult?.final_assessment?.score || 0;
+  const latestRisk  = latest?.riskLevel || mlAnalysisResult?.risk_level || null;
+  const latestAlert = latest?.alert     || mlAnalysisResult?.alert      || false;
+  const latestReport= latest?.report    || mlAnalysisResult?.report     || null;
+  const fa          = latest?.finalAssessment || mlAnalysisResult?.final_assessment || {};
 
-  const initials = user?.firstName?.slice(0, 2).toUpperCase() || "AI";
+  const ringPct     = Math.round(latestScore * 100);
+  const circumference = 2 * Math.PI * 30; // r=30
+  const dashOffset  = circumference - (circumference * latestScore);
+
+  const initials = user?.firstName?.slice(0, 2).toUpperCase() || 'VI';
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex overflow-hidden font-sans">
 
-      {/* ── Sidebar ── */}
-      <aside className="w-20 md:w-64 bg-white border-r border-slate-200 flex flex-col items-center md:items-start py-8 px-4 z-20 shadow-sm">
-        <div className="flex items-center gap-3 mb-12 md:px-4">
-          <div className="bg-gradient-to-br from-teal-500 to-emerald-600 p-2 rounded-xl text-white shadow-[0_5px_15px_rgba(20,184,166,0.3)]">
-            <HeartPulse size={20} strokeWidth={2.5} />
+      {/* ══ SIDEBAR ══════════════════════════════════════════ */}
+      <aside className="w-20 md:w-60 bg-white border-r border-slate-200 flex flex-col py-6 px-3 shrink-0 shadow-sm">
+
+        {/* Logo */}
+        <div className="flex items-center gap-2.5 mb-10 px-2">
+          <div className="bg-teal-600 p-2 rounded-xl text-white shadow-[0_4px_12px_rgba(13,148,136,0.3)]">
+            <HeartPulse size={18} strokeWidth={2.5} />
           </div>
-          <span className="hidden md:block text-xl font-bold text-slate-900 tracking-tight">VITA<span className="text-teal-600">AI</span></span>
+          <span className="hidden md:block text-lg font-semibold text-slate-900">
+            VITA<span className="text-teal-600">AI</span>
+          </span>
         </div>
 
-        <nav className="flex-1 w-full space-y-2">
-          <SidebarLink icon={<Activity size={20} />} label="Overview" active />
-          <SidebarLink icon={<FileText size={20} />} label="Health Records" />
-          <SidebarLink icon={<Zap size={20} />} label="AI Diagnostics" />
+        {/* Nav */}
+        <nav className="flex-1 space-y-1">
+          <SidebarLink icon={<Activity size={18} />}   label="Overview"       active />
           <NavLink to="/upload-pdf">
-            <SidebarLink icon={<Upload size={20} />} label="Upload PDF" />
+            <SidebarLink icon={<Upload size={18} />}   label="Upload PDF" />
+          </NavLink>
+          <NavLink to="/health-check">
+            <SidebarLink icon={<ShieldCheck size={18} />} label="Risk Check" />
           </NavLink>
         </nav>
 
+        {/* Logout */}
         <button
           onClick={handleLogout}
-          disabled={logoutLoading}
-          className="mt-auto flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-500 transition-colors w-full group disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all w-full"
         >
-          {logoutLoading ? <Loader2 size={20} className="animate-spin" /> : <LogOut size={20} />}
-          <span className="hidden md:block font-bold text-[10px] uppercase tracking-widest">
-            {logoutLoading ? 'Signing Out...' : 'Terminate Session'}
-          </span>
+          <LogOut size={18} />
+          <span className="hidden md:block text-xs font-semibold uppercase tracking-widest">Sign out</span>
         </button>
       </aside>
 
-      {/* ── Main Content ── */}
-      <main className="flex-1 relative overflow-y-auto">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-teal-400/5 rounded-full blur-[120px] pointer-events-none" />
+      {/* ══ MAIN ═════════════════════════════════════════════ */}
+      <main className="flex-1 overflow-y-auto">
 
-        <header className="px-8 py-8 flex justify-between items-center">
+        {/* ── Header ── */}
+        <header className="px-6 py-6 flex items-center justify-between border-b border-slate-100 bg-white">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Diagnostic Hub</h1>
-            <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-medium">
-              System Status: <span className="text-emerald-600 font-bold">Optimal</span>
+            <h1 className="text-xl font-semibold text-slate-900">Diagnostic Hub</h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Welcome back, <span className="text-teal-600 font-medium">{user?.firstName || 'User'}</span>
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <NavLink to="/upload-pdf"
-              className="hidden md:flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-[10px] uppercase tracking-widest px-4 py-2.5 rounded-xl transition-all shadow-md shadow-teal-500/10">
-              <Plus size={14} /> New Report
+              className="hidden md:flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all shadow-sm">
+              <Plus size={13} /> New Report
             </NavLink>
-            <div className="hidden md:block text-right">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Bio-Sync</p>
-              <p className="text-sm text-teal-600 font-mono font-bold">98.2 BPM</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-teal-600 font-bold text-sm">
+            <NavLink to="/health-check"
+              className="hidden md:flex items-center gap-1.5 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold px-4 py-2 rounded-xl transition-all">
+              <ShieldCheck size={13} /> Risk Check
+            </NavLink>
+            <div className="w-9 h-9 rounded-full bg-teal-100 text-teal-700 font-semibold text-sm flex items-center justify-center">
               {initials}
             </div>
           </div>
         </header>
 
-        <section className="px-8 pb-12 space-y-8">
+        <div className="px-6 py-6 space-y-6">
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-            {/* Left Column: Uploaders */}
-            <div className="lg:col-span-5 space-y-6">
-              <div className="bg-white border border-slate-200 p-6 rounded-[32px] shadow-sm">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                  <Upload size={14} className="text-teal-600" /> Data Ingestion
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  <label className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center gap-3
-                    ${fileType === 'pdf' ? 'border-teal-500 bg-teal-50' : 'border-slate-200 hover:border-teal-300 bg-slate-50/50'}`}>
-                    <input type="file" accept=".pdf" className="hidden" onChange={(e) => onFileChange(e, 'pdf')} />
-                    <div className="p-3 bg-white shadow-sm rounded-xl group-hover:scale-110 transition-transform">
-                      <FileText size={24} className={fileType === 'pdf' ? 'text-teal-600' : 'text-slate-400'} />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Clinical PDF</p>
-                      <p className="text-[10px] text-slate-500 mt-1">Lab reports, Scans</p>
-                    </div>
-                  </label>
-                  
-                  <label className={`relative group cursor-pointer border-2 border-dashed rounded-2xl p-6 transition-all duration-300 flex flex-col items-center justify-center gap-3
-                    ${fileType === 'video' ? 'border-teal-500 bg-teal-50' : 'border-slate-200 hover:border-teal-300 bg-slate-50/50'}`}>
-                    <input type="file" accept="video/*" className="hidden" onChange={(e) => onFileChange(e, 'video')} />
-                    <div className="p-3 bg-white shadow-sm rounded-xl group-hover:scale-110 transition-transform">
-                      <Video size={24} className={fileType === 'video' ? 'text-teal-600' : 'text-slate-400'} />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Movement Video</p>
-                      <p className="text-[10px] text-slate-500 mt-1">Gait analysis, Exercise</p>
-                    </div>
-                  </label>
-                </div>
-
-                {file && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center gap-3">
-                    <CheckCircle2 size={18} className="text-emerald-600" />
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase truncate flex-1">{file.name}</span>
-                  </motion.div>
+          {/* ── Metric Cards ── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                label: 'Risk Score',
+                value: latestScore ? `${Math.round(latestScore * 100)}%` : '—',
+                badge: latestRisk,
+                color: SEVERITY[latestRisk]?.badge || 'bg-slate-100 text-slate-500 border-slate-200',
+              },
+              {
+                label: 'ML Reports',
+                value: mlReports.length,
+                badge: 'Total',
+                color: 'bg-blue-50 text-blue-700 border-blue-100',
+              },
+              {
+                label: 'PDF Reports',
+                value: reports.length,
+                badge: 'Total',
+                color: 'bg-teal-50 text-teal-700 border-teal-100',
+              },
+              {
+                label: 'Alerts Fired',
+                value: mlReports.filter(r => r.alert).length,
+                badge: 'Critical only',
+                color: 'bg-red-50 text-red-700 border-red-100',
+              },
+            ].map(({ label, value, badge, color }) => (
+              <div key={label} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-2">{label}</p>
+                <p className="text-2xl font-semibold text-slate-900">{value}</p>
+                {badge && (
+                  <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border mt-2 ${color}`}>
+                    {badge}
+                  </span>
                 )}
-
-                <button
-                  onClick={simulateAnalysis}
-                  disabled={!file || isAnalyzing}
-                  className="w-full mt-6 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-bold text-[10px] uppercase tracking-[0.2em] py-4 rounded-xl transition-all shadow-lg shadow-teal-600/20 flex items-center justify-center gap-2"
-                >
-                  {isAnalyzing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                  {isAnalyzing ? 'Processing Bio-Data' : 'Begin AI Analysis'}
-                </button>
-
-                <NavLink to="/upload-pdf"
-                  className="w-full mt-3 flex items-center justify-center gap-2 border border-slate-200 text-slate-600 font-bold text-[10px] uppercase tracking-[0.2em] py-3 rounded-xl transition-all hover:bg-slate-50">
-                  <FileText size={14} /> Full PDF Analysis →
-                </NavLink>
               </div>
+            ))}
+          </div>
+
+          {/* ── Pipeline + Score ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            {/* Pipeline Steps */}
+            <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                <h2 className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+                  ML Pipeline — last run
+                </h2>
+                {latestRisk && (
+                  <span className={`ml-auto text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${SEVERITY[latestRisk]?.badge || ''}`}>
+                    {latestRisk}
+                  </span>
+                )}
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-0">
+                {PIPELINE_STEPS.map((step, i) => {
+                  const isAlert   = step.id === 'generate_alert';
+                  const isDone    = latest || mlAnalysisResult;
+                  const stepState = isDone
+                    ? (isAlert && latestAlert ? 'alert' : 'done')
+                    : 'idle';
+
+                  return (
+                    <div key={step.id} className="flex gap-3 relative">
+                      {/* Vertical connector */}
+                      {i < PIPELINE_STEPS.length - 1 && (
+                        <div className="absolute left-[14px] top-8 bottom-0 w-px bg-slate-100 z-0" />
+                      )}
+
+                      {/* Dot */}
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 z-10 mt-1
+                        ${stepState === 'done'  ? 'bg-teal-500 text-white' : ''}
+                        ${stepState === 'alert' ? 'bg-amber-400 text-white' : ''}
+                        ${stepState === 'idle'  ? 'bg-slate-100 text-slate-400 border border-slate-200' : ''}
+                      `}>
+                        {stepState === 'done'  ? '✓' : ''}
+                        {stepState === 'alert' ? '!' : ''}
+                        {stepState === 'idle'  ? (i + 1) : ''}
+                      </div>
+
+                      {/* Content */}
+                      <div className="pb-4 flex-1">
+                        <p className="text-sm font-medium text-slate-800">{step.label}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {stepState !== 'idle' ? step.desc : 'Waiting...'}
+                        </p>
+                        {stepState !== 'idle' && (
+                          <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1
+                            ${stepState === 'done'  ? 'bg-teal-50 text-teal-700' : ''}
+                            ${stepState === 'alert' ? 'bg-amber-50 text-amber-700' : ''}
+                          `}>
+                            {stepState === 'alert' ? 'alert fired' : 'completed'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Empty state */}
+              {!latest && !mlAnalysisResult && (
+                <div className="text-center py-6">
+                  <p className="text-xs text-slate-400 mb-3">No ML analysis run yet</p>
+                  <NavLink to="/health-check"
+                    className="inline-flex items-center gap-1.5 bg-teal-600 text-white text-xs font-semibold px-4 py-2 rounded-xl">
+                    <ShieldCheck size={12} /> Run Risk Check
+                  </NavLink>
+                </div>
+              )}
             </div>
 
-            {/* Right Column: AI Output */}
-            <div className="lg:col-span-7 flex flex-col h-[600px]">
-              <div className="bg-white border border-slate-200 rounded-[32px] flex flex-col flex-1 overflow-hidden shadow-sm">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-                    <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Neural Insights Feed</h3>
-                  </div>
-                  <ShieldCheck size={16} className="text-slate-400" />
-                </div>
+            {/* Score + Alert */}
+            <div className="lg:col-span-5 flex flex-col gap-4">
 
-                <div className="flex-1 p-8 overflow-y-auto space-y-6">
-                  <AnimatePresence mode="wait">
-                    {isAnalyzing && (
-                      <motion.div key="analyzing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                        <Loader2 size={40} className="text-teal-600 animate-spin" />
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em]">Decoding Medical Patterns...</p>
-                      </motion.div>
-                    )}
-                    {!isAnalyzing && !response && (
-                      <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="flex flex-col items-center justify-center h-full text-center opacity-40">
-                        <Zap size={48} className="mb-4 text-slate-300" />
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Waiting for Ingestion</p>
-                      </motion.div>
-                    )}
-                    {!isAnalyzing && response && (
-                      <motion.div key="response" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                        className="bg-teal-50/50 border border-teal-100 p-6 rounded-2xl relative">
-                        <Sparkles size={16} className="absolute -top-2 -left-2 text-teal-600" />
-                        <p className="text-sm leading-relaxed text-slate-700 font-medium">{response}</p>
-                        <div className="mt-6 flex gap-2">
-                          <button className="text-[10px] font-bold uppercase tracking-widest bg-white border border-slate-200 hover:bg-slate-50 px-4 py-2 rounded-lg transition-colors">
-                            Save to Records
-                          </button>
-                          <NavLink to="/upload-pdf" className="text-[10px] font-bold uppercase tracking-widest bg-teal-600 text-white px-4 py-2 rounded-lg transition-colors shadow-sm">
-                            Full PDF Analysis
-                          </NavLink>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                <div className="p-6 bg-slate-50 border-t border-slate-100">
-                  <div className="relative">
-                    <input type="text" placeholder="Ask follow-up question..."
-                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs outline-none focus:border-teal-500 transition-all placeholder:text-slate-400" />
-                    <button className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-600 hover:text-teal-700 transition-colors">
-                      <Send size={16} />
-                    </button>
+              {/* Ring chart */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <h2 className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-4">
+                  Score breakdown
+                </h2>
+                <div className="flex items-center gap-4 mb-4">
+                  <svg width="80" height="80" viewBox="0 0 80 80">
+                    <circle cx="40" cy="40" r="30"
+                      fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                    <circle cx="40" cy="40" r="30"
+                      fill="none"
+                      stroke={SEVERITY[latestRisk]?.ring || '#0d9488'}
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={dashOffset}
+                      style={{ transform: 'rotate(-90deg)', transformOrigin: '40px 40px', transition: 'stroke-dashoffset .8s ease' }}
+                    />
+                    <text x="40" y="45" textAnchor="middle"
+                      style={{ fontSize: 15, fontWeight: 500, fill: 'currentColor', fontFamily: 'inherit' }}>
+                      {ringPct}%
+                    </text>
+                  </svg>
+                  <div>
+                    <p className="text-base font-semibold text-slate-900">{latestRisk || 'No data'}</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Fused final score</p>
                   </div>
                 </div>
+
+                {/* Bars */}
+                {[
+                  { label: 'ML model',      pct: Math.round((fa.ml_probability  || 0) * 100), color: 'bg-teal-500'   },
+                  { label: 'Abnormal labs', pct: Math.min(Math.round(((fa.abnormal_count || 0) / 3) * 100), 100), color: 'bg-amber-400' },
+                  { label: 'Symptoms',      pct: Math.round((fa.symptom_score   || 0) * 100), color: 'bg-indigo-400' },
+                ].map(({ label, pct, color }) => (
+                  <div key={label} className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] text-slate-400 w-24 shrink-0">{label}</span>
+                    <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-[11px] text-slate-400 w-8 text-right">{pct}%</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Alert box */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex-1">
+                <h2 className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-3">
+                  Latest alert
+                </h2>
+
+                {latestAlert && latestReport ? (
+                  <>
+                    <div className="flex gap-2 p-3 bg-red-50 border border-red-100 rounded-xl mb-4">
+                      <AlertCircle size={14} className="text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700 leading-relaxed">{latestReport}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <NavLink to="/health-check"
+                        className="flex-1 text-center bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold py-2.5 rounded-xl transition-all">
+                        New analysis
+                      </NavLink>
+                      {mlReports[0] && (
+                        <button
+                          onClick={() => navigate(`/analysis/${mlReports[0]._id}`)}
+                          className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-600 text-xs font-semibold py-2.5 rounded-xl transition-all">
+                          View report
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-4">
+                    <Sparkles size={24} className="text-slate-200 mx-auto mb-2" />
+                    <p className="text-xs text-slate-400">No alerts yet</p>
+                    <NavLink to="/health-check"
+                      className="inline-flex items-center gap-1.5 mt-3 text-teal-600 text-xs font-semibold hover:underline">
+                      Run a risk check →
+                    </NavLink>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* ── Health Reports List ── */}
-          <div className="bg-white border border-slate-200 rounded-[32px] shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                <FileText size={14} className="text-teal-600" /> Health Reports
-              </h3>
+          {/* ── ML Reports Table ── */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                <ShieldCheck size={13} className="text-teal-600" /> ML Risk Results
+              </h2>
+              <NavLink to="/health-check"
+                className="flex items-center gap-1 text-teal-600 text-[10px] font-semibold hover:underline">
+                <Plus size={11} /> New check
+              </NavLink>
+            </div>
+
+            {mlReportsLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 size={20} className="text-teal-600 animate-spin" />
+              </div>
+            ) : mlReports.length === 0 ? (
+              <div className="text-center py-10">
+                <ShieldCheck size={28} className="text-slate-200 mx-auto mb-2" />
+                <p className="text-sm text-slate-400 mb-1">No risk checks yet</p>
+                <NavLink to="/health-check"
+                  className="inline-flex items-center gap-1.5 mt-2 bg-teal-600 text-white text-xs font-semibold px-4 py-2 rounded-xl">
+                  <ShieldCheck size={12} /> Run Risk Check
+                </NavLink>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {mlReports.map((r, i) => (
+                  <motion.div
+                    key={r._id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors group"
+                  >
+                    <div className="p-2 bg-slate-100 rounded-xl shrink-0">
+                      <ShieldCheck size={14} className="text-teal-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">
+                        Risk Check — {new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 truncate">{r.report || 'No report text'}</p>
+                    </div>
+                    {r.riskLevel && (
+                      <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shrink-0 ${SEVERITY[r.riskLevel]?.badge || ''}`}>
+                        {r.riskLevel}
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => handleDeleteML(e, r._id)}
+                      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── PDF Reports Table ── */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                <FileText size={13} className="text-teal-600" /> PDF Reports
+              </h2>
               <NavLink to="/upload-pdf"
-                className="flex items-center gap-1.5 text-teal-600 hover:text-teal-700 text-[10px] font-bold uppercase tracking-widest transition-colors">
-                <Plus size={12} /> Upload New
+                className="flex items-center gap-1 text-teal-600 text-[10px] font-semibold hover:underline">
+                <Plus size={11} /> Upload PDF
               </NavLink>
             </div>
 
             {reportsLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 size={22} className="text-teal-600 animate-spin" />
+              <div className="flex justify-center py-8">
+                <Loader2 size={20} className="text-teal-600 animate-spin" />
               </div>
             ) : reports.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center px-6">
-                <div className="p-4 bg-slate-50 rounded-2xl mb-3">
-                  <FileText size={28} className="text-slate-300" />
-                </div>
-                <p className="text-slate-500 text-sm font-medium mb-1">No reports yet</p>
-                <p className="text-slate-400 text-xs mb-5">Upload a health PDF to get AI-powered insights</p>
+              <div className="text-center py-10">
+                <FileText size={28} className="text-slate-200 mx-auto mb-2" />
+                <p className="text-sm text-slate-400 mb-1">No PDF reports yet</p>
                 <NavLink to="/upload-pdf"
-                  className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-[10px] uppercase tracking-widest px-5 py-3 rounded-xl transition-all shadow-md">
+                  className="inline-flex items-center gap-1.5 mt-2 bg-teal-600 text-white text-xs font-semibold px-4 py-2 rounded-xl">
                   <Upload size={12} /> Upload PDF
                 </NavLink>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {reports.map((report, i) => (
-                  <motion.div key={report._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.04 }}>
-                    <NavLink to={`/analysis/${report._id}`}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50 transition-colors group">
-                      <div className="p-2.5 bg-white rounded-xl border border-slate-200 flex-shrink-0">
-                        <FileText size={16} className="text-teal-600" />
+                {reports.map((r, i) => (
+                  <motion.div
+                    key={r._id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.04 }}
+                  >
+                    <NavLink
+                      to={`/analysis/${r._id}`}
+                      className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 transition-colors group"
+                    >
+                      <div className="p-2 bg-slate-100 rounded-xl shrink-0">
+                        <FileText size={14} className="text-teal-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{report.reportName}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
-                          {new Date(report.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
+                        <p className="text-sm font-medium text-slate-800 truncate">{r.reportName}</p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          {new Date(r.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}
+                          {r.mlRiskLevel && <span className="ml-1">· ML included</span>}
                         </p>
                       </div>
-                      {report.severityLevel && (
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border flex-shrink-0 ${SEVERITY_COLORS[report.severityLevel]}`}>
-                          {report.severityLevel}
+                      {r.severityLevel && (
+                        <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shrink-0 ${SEVERITY[r.severityLevel]?.badge || ''}`}>
+                          {r.severityLevel}
+                        </span>
+                      )}
+                      {r.mlRiskLevel && (
+                        <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border shrink-0 ${SEVERITY[r.mlRiskLevel]?.badge || ''}`}>
+                          ML: {r.mlRiskLevel}
                         </span>
                       )}
                       <div className="flex items-center gap-1">
-                        <button onClick={(e) => handleDeleteReport(e, report._id)}
-                          className="p-1.5 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 rounded-lg hover:bg-red-50">
-                          <Trash2 size={13} />
+                        <button
+                          onClick={(e) => handleDeletePdf(e, r._id)}
+                          className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash2 size={12} />
                         </button>
-                        <ChevronRight size={15} className="text-slate-300 group-hover:text-teal-600 transition-colors" />
+                        <ChevronRight size={14} className="text-slate-300 group-hover:text-teal-600 transition-colors" />
                       </div>
                     </NavLink>
                   </motion.div>
@@ -678,7 +484,7 @@ function Dashboard() {
             )}
           </div>
 
-        </section>
+        </div>
       </main>
     </div>
   );
@@ -686,12 +492,13 @@ function Dashboard() {
 
 function SidebarLink({ icon, label, active = false }) {
   return (
-    <div className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-300 group
-      ${active ? 'bg-teal-50 text-teal-600 border border-teal-100' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'}`}>
+    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all
+      ${active
+        ? 'bg-teal-50 text-teal-700 border border-teal-100'
+        : 'text-slate-400 hover:bg-slate-50 hover:text-slate-800'
+      }`}>
       {icon}
-      <span className="hidden md:block text-[10px] font-bold uppercase tracking-widest">{label}</span>
+      <span className="hidden md:block text-xs font-semibold uppercase tracking-widest">{label}</span>
     </div>
   );
 }
-
-export default Dashboard;

@@ -1,19 +1,18 @@
 // src/App.jsx
-// Your existing App.jsx with /upload-pdf and /analysis/:id routes added
-// Everything else is UNCHANGED from your original
 
 import { Routes, Route, Navigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
-import { checkAuth } from "../src/authSlice";
+import { checkAuth } from "./authSlice";          // ✅ fixed path
 
 import Login from "./pages/login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import UploadPdf from "./pages/UploadPdf";       // ← NEW
-import AnalysisResult from "./pages/AnalysisResult"; // ← NEW
+import UploadPdf from "./pages/UploadPdf";
+import AnalysisResult from "./pages/AnalysisResult";
+import HealthCheck from "./pages/HealthCheck";
+import FinalResult from './pages/FinalResult';
 
-// Simple protected route wrapper — keeps it inline like your existing pattern
 const Protected = ({ children }) => {
   const { isAuthenticated } = useSelector((state) => state.auth);
   return isAuthenticated ? children : <Navigate to="/login" replace />;
@@ -25,7 +24,6 @@ function App() {
 
   useEffect(() => {
     dispatch(checkAuth());
-    
   }, [dispatch]);
 
   if (loading) {
@@ -41,20 +39,22 @@ function App() {
 
   return (
     <Routes>
-      {/* Root: redirect to dashboard if logged in, else login */}
+      {/* Root redirect */}
       <Route
         path="/"
-        element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+        element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
       />
 
       {/* Public routes */}
-      <Route path="/login" element={<Login />} />
+      <Route path="/login"  element={<Login />} />
       <Route path="/signup" element={<Register />} />
+      <Route path="/result/:id" element={<Protected><FinalResult /></Protected>} />
 
       {/* Protected routes */}
-      <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-      <Route path="/upload-pdf" element={<Protected><UploadPdf /></Protected>} />           {/* ← NEW */}
-      <Route path="/analysis/:id" element={<Protected><AnalysisResult /></Protected>} />    {/* ← NEW */}
+      <Route path="/dashboard"      element={<Protected><Dashboard /></Protected>} />
+      <Route path="/upload-pdf"     element={<Protected><UploadPdf /></Protected>} />
+      <Route path="/analysis/:id"   element={<Protected><AnalysisResult /></Protected>} />
+      <Route path="/health-check"   element={<Protected><HealthCheck /></Protected>} />  {/* ✅ protected */}
     </Routes>
   );
 }

@@ -56,6 +56,10 @@ const userSchema = new Schema({
             return this.authProvider === 'local';
         }
     },
+    fastapiToken: {
+    type: String,
+    default: null,
+    },
 },{
     timestamps:true
 });

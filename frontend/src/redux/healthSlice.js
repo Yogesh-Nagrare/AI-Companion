@@ -1,11 +1,7 @@
 // src/redux/healthSlice.js
-
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosClient from "../api/axiosClient";
 
-/* ============================================================
-   STEP 1 — Get Cloudinary signature from backend
-============================================================ */
 export const getUploadSignature = createAsyncThunk(
   "health/getSignature",
   async (_, { rejectWithValue }) => {
@@ -18,10 +14,6 @@ export const getUploadSignature = createAsyncThunk(
   }
 );
 
-/* ============================================================
-   STEP 2 — Upload PDF directly to Cloudinary (NOT through backend)
-   XHR used for progress tracking
-============================================================ */
 export const uploadToCloudinary = createAsyncThunk(
   "health/uploadCloudinary",
   async ({ file, signatureData, onProgress }, { rejectWithValue }) => {
@@ -36,29 +28,20 @@ export const uploadToCloudinary = createAsyncThunk(
       return await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", signatureData.upload_url);
-
-        // Safe progress callback
         const progressFn = onProgress || (() => {});
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) progressFn(Math.round((e.loaded / e.total) * 100));
         };
-
         xhr.onload = () => {
           try {
             const res = JSON.parse(xhr.responseText);
-            if (xhr.status >= 200 && xhr.status < 300) {
-              resolve(res);
-            } else {
-              reject(new Error(res.error?.message || "Cloudinary upload failed"));
-            }
-          } catch {
-            reject(new Error("Cloudinary returned invalid JSON"));
-          }
+            if (xhr.status >= 200 && xhr.status < 300) resolve(res);
+            else reject(new Error(res.error?.message || "Cloudinary upload failed"));
+          } catch { reject(new Error("Cloudinary returned invalid JSON")); }
         };
-
         xhr.onerror = () => reject(new Error("Network error during upload"));
         xhr.ontimeout = () => reject(new Error("Upload timed out"));
-        xhr.timeout = 120000; // 2 min timeout for large PDFs
+        xhr.timeout = 120000;
         xhr.send(formData);
       });
     } catch (error) {
@@ -67,9 +50,6 @@ export const uploadToCloudinary = createAsyncThunk(
   }
 );
 
-/* ============================================================
-   STEP 3 — Backend extracts PDF text + runs Gemini analysis
-============================================================ */
 export const analyzePdf = createAsyncThunk(
   "health/analyze",
   async ({ cloudinaryPublicId, secureUrl, reportName }, { rejectWithValue }) => {
@@ -86,9 +66,6 @@ export const analyzePdf = createAsyncThunk(
   }
 );
 
-/* ============================================================
-   Fetch all user's reports (list — no heavy aiAnalysis field)
-============================================================ */
 export const fetchReports = createAsyncThunk(
   "health/fetchReports",
   async (_, { rejectWithValue }) => {
@@ -101,9 +78,6 @@ export const fetchReports = createAsyncThunk(
   }
 );
 
-/* ============================================================
-   Fetch single report with full AI analysis
-============================================================ */
 export const fetchReportById = createAsyncThunk(
   "health/fetchReportById",
   async (reportId, { rejectWithValue }) => {
@@ -116,9 +90,6 @@ export const fetchReportById = createAsyncThunk(
   }
 );
 
-/* ============================================================
-   Delete a report
-============================================================ */
 export const deleteReport = createAsyncThunk(
   "health/deleteReport",
   async (reportId, { rejectWithValue }) => {
@@ -131,25 +102,83 @@ export const deleteReport = createAsyncThunk(
   }
 );
 
-/* ============================================================
-   SLICE
-============================================================ */
+export const analyzeWithML = createAsyncThunk(
+  "health/analyzeWithML",
+  async (healthData, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosClient.post("/health/ml/analyze", healthData);
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error || error.message);
+    }
+  }
+);
+
+export const fetchMLReports = createAsyncThunk(
+  "health/fetchMLReports",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosClient.get("/health/ml/reports");
+      return data.reports;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error || error.message);
+    }
+  }
+);
+
+export const fetchMLReportById = createAsyncThunk(
+  "health/fetchMLReportById",
+  async (reportId, { rejectWithValue }) => {
+    try {
+      const { data } = await axiosClient.get(`/health/ml/reports/${reportId}`);
+      return data.report;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error || error.message);
+    }
+  }
+);
+
+export const deleteMLReport = createAsyncThunk(
+  "health/deleteMLReport",
+  async (reportId, { rejectWithValue }) => {
+    try {
+      await axiosClient.delete(`/health/ml/reports/${reportId}`);
+      return reportId;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.error || error.message);
+    }
+  }
+);
+
 const healthSlice = createSlice({
   name: "health",
-
   initialState: {
+    // PDF upload
     uploadProgress: 0,
-    uploadStep: null,   // null | 'signing' | 'uploading' | 'extracting' | 'analyzing' | 'done' | 'error'
+    uploadStep: null,
     uploadError: null,
     currentAnalysis: null,
 
+    // 🆕 Extracted PDF data passed to HealthCheck
+    pdfExtractedData: null, // { hba1c, glucose, bmi, age, reportId, geminiAnalysis, reportName }
+
+    // PDF reports
     reports: [],
     reportsLoading: false,
     reportsError: null,
-
     activeReport: null,
     activeReportLoading: false,
     activeReportError: null,
+
+    // ML reports
+    mlReports: [],
+    mlReportsLoading: false,
+    mlReportsError: null,
+    activeMLReport: null,
+    activeMLReportLoading: false,
+    mlAnalysisLoading: false,
+    mlAnalysisError: null,
+    mlAnalysisResult: null,
   },
 
   reducers: {
@@ -165,12 +194,22 @@ const healthSlice = createSlice({
     setUploadStep: (state, action) => {
       state.uploadStep = action.payload;
     },
+    resetMLAnalysis: (state) => {
+      state.mlAnalysisLoading = false;
+      state.mlAnalysisError = null;
+      state.mlAnalysisResult = null;
+    },
+    // 🆕 Store extracted PDF values to pre-fill HealthCheck
+    setPdfExtractedData: (state, action) => {
+      state.pdfExtractedData = action.payload;
+    },
+    clearPdfExtractedData: (state) => {
+      state.pdfExtractedData = null;
+    },
   },
 
   extraReducers: (builder) => {
     builder
-
-      /* ── GET SIGNATURE ── */
       .addCase(getUploadSignature.pending, (state) => {
         state.uploadStep = "signing";
         state.uploadProgress = 0;
@@ -180,8 +219,6 @@ const healthSlice = createSlice({
         state.uploadStep = "error";
         state.uploadError = action.payload || "Failed to get upload credentials";
       })
-
-      /* ── CLOUDINARY UPLOAD ── */
       .addCase(uploadToCloudinary.pending, (state) => {
         state.uploadStep = "uploading";
         state.uploadProgress = 0;
@@ -194,21 +231,31 @@ const healthSlice = createSlice({
         state.uploadStep = "error";
         state.uploadError = action.payload || "Upload to Cloudinary failed";
       })
-
-      /* ── GEMINI ANALYSIS ── */
       .addCase(analyzePdf.pending, (state) => {
         state.uploadStep = "analyzing";
       })
       .addCase(analyzePdf.fulfilled, (state, action) => {
         state.uploadStep = "done";
         state.currentAnalysis = action.payload;
-        // Prepend to reports list if already loaded
+        // 🆕 Store extracted ML input values for HealthCheck pre-fill
+        if (action.payload?.mlAnalysis?.extracted_input || action.payload?.mlExtractedInput) {
+          const extracted = action.payload.mlExtractedInput || action.payload.mlAnalysis?.extracted_input;
+          state.pdfExtractedData = {
+            hba1c:          extracted?.hba1c    || null,
+            glucose:        extracted?.glucose  || null,
+            bmi:            extracted?.bmi      || null,
+            age:            extracted?.age      || null,
+            reportId:       action.payload.reportId,
+            reportName:     action.payload.reportName,
+            geminiAnalysis: action.payload.analysis,
+          };
+        }
         if (state.reports.length > 0) {
           state.reports.unshift({
-            _id: action.payload.reportId,
-            reportName: action.payload.reportName,
+            _id:           action.payload.reportId,
+            reportName:    action.payload.reportName,
             severityLevel: action.payload.analysis?.severityLevel,
-            createdAt: action.payload.uploadedAt, // use server timestamp
+            createdAt:     action.payload.uploadedAt,
           });
         }
       })
@@ -216,8 +263,6 @@ const healthSlice = createSlice({
         state.uploadStep = "error";
         state.uploadError = action.payload || "AI analysis failed";
       })
-
-      /* ── FETCH REPORTS ── */
       .addCase(fetchReports.pending, (state) => {
         state.reportsLoading = true;
         state.reportsError = null;
@@ -230,8 +275,6 @@ const healthSlice = createSlice({
         state.reportsLoading = false;
         state.reportsError = action.payload || "Failed to load reports";
       })
-
-      /* ── FETCH SINGLE REPORT ── */
       .addCase(fetchReportById.pending, (state) => {
         state.activeReportLoading = true;
         state.activeReportError = null;
@@ -245,16 +288,60 @@ const healthSlice = createSlice({
         state.activeReportLoading = false;
         state.activeReportError = action.payload || "Failed to load report";
       })
-
-      /* ── DELETE REPORT ── */
       .addCase(deleteReport.fulfilled, (state, action) => {
         state.reports = state.reports.filter((r) => r._id !== action.payload);
-        if (state.activeReport?._id === action.payload) {
-          state.activeReport = null;
-        }
+        if (state.activeReport?._id === action.payload) state.activeReport = null;
+      })
+      .addCase(analyzeWithML.pending, (state) => {
+        state.mlAnalysisLoading = true;
+        state.mlAnalysisError = null;
+        state.mlAnalysisResult = null;
+      })
+      .addCase(analyzeWithML.fulfilled, (state, action) => {
+        state.mlAnalysisLoading = false;
+        state.mlAnalysisResult = action.payload;
+      })
+      .addCase(analyzeWithML.rejected, (state, action) => {
+        state.mlAnalysisLoading = false;
+        state.mlAnalysisError = action.payload || "ML analysis failed";
+      })
+      .addCase(fetchMLReports.pending, (state) => {
+        state.mlReportsLoading = true;
+        state.mlReportsError = null;
+      })
+      .addCase(fetchMLReports.fulfilled, (state, action) => {
+        state.mlReportsLoading = false;
+        state.mlReports = action.payload;
+      })
+      .addCase(fetchMLReports.rejected, (state, action) => {
+        state.mlReportsLoading = false;
+        state.mlReportsError = action.payload || "Failed to load ML reports";
+      })
+      .addCase(fetchMLReportById.pending, (state) => {
+        state.activeMLReportLoading = true;
+        state.activeMLReport = null;
+      })
+      .addCase(fetchMLReportById.fulfilled, (state, action) => {
+        state.activeMLReportLoading = false;
+        state.activeMLReport = action.payload;
+      })
+      .addCase(fetchMLReportById.rejected, (state) => {
+        state.activeMLReportLoading = false;
+      })
+      .addCase(deleteMLReport.fulfilled, (state, action) => {
+        state.mlReports = state.mlReports.filter((r) => r._id !== action.payload);
+        if (state.activeMLReport?._id === action.payload) state.activeMLReport = null;
       });
   },
 });
 
-export const { resetUpload, setUploadProgress, setUploadStep } = healthSlice.actions;
+export const {
+  resetUpload,
+  setUploadProgress,
+  setUploadStep,
+  resetMLAnalysis,
+  setPdfExtractedData,
+  clearPdfExtractedData,
+} = healthSlice.actions;
+
 export default healthSlice.reducer;
